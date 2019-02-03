@@ -65,17 +65,27 @@ class AlexaHomeApp:
         return json.dumps(self, default=lambda o: o.__dict__)
 
 class AlexaResponse:
-    def __init__(self, namespace, name, value, endpoint_id, message_id, correlation_token):
+    def __init__(self, namespace, state, value, endpoint_id, message_id, correlation_token):
        self.response = {
             "context": {
                      "properties": [
                     {
                         "namespace": namespace,
-                        "name": name,
+                        "name": state,
                         "value": value,
                         "timeOfSample": get_utc_timestamp(),
                         "uncertaintyInMilliseconds": 500
-                    }]
+                    },
+                    {
+                        "namespace": "Alexa.EndpointHealth",
+                        "name": "connectivity",
+                        "value": {
+                            "value": "OK"
+                        },
+                        "timeOfSample": get_utc_timestamp(),
+                        "uncertaintyInMilliseconds": 500
+                    }
+                    ]
                  },
                  "event": {
                      "header": {
@@ -187,6 +197,7 @@ def handle_non_discovery_v3(request):
     correlation_token = request["directive"]["header"]["correlationToken"]
     message_id = get_uuid()
     value = ""
+    state = ""
 
     # Turn the light off or on
     if request_namespace == "Alexa.PowerController":
@@ -194,27 +205,31 @@ def handle_non_discovery_v3(request):
             value = "ON"
         else:
             value = "OFF"
+        state = "powerState"
         sendBatchRequest(device, 'power', value)
 
     # Adjust the brighness of light
     elif request_namespace == "Alexa.BrightnessController":
         if request_name =='Alexa.AdjustBrightness':
             value = request['directive']['payload']['brightnessDelta']
+            state = "brightness"
             sendBatchRequest(device, 'brightnessDelta', value)
 
         # Set the brightness to a level
         elif request_name == 'Alexa.SetBrightness':
             value = request['directive']['payload']['brighness']
+            state = "brightness"
             sendBatchRequest(device, 'brightness', value)
 
      # Change the light color
     elif request_namespace == "Alexa.ColorController":
-        if request_name == "setColor":
+        if request_name == "SetColor":
             value = request['directive']['payload']['color']
             color_hue = value['hue']
             color_sat = value['saturation']
             color_val = value['brightness']
             color = colorsys.hsv_to_rgb(color_hue, color_sat, color_val)
+            state = "color"
             sendBatchRequest(device, 'color', color)
 
     # Authorization Response
@@ -234,8 +249,8 @@ def handle_non_discovery_v3(request):
             return response
 
     # Create the final response and send it
-    response = AlexaResponse(request_namespace, request_name, value,
-                                 device, message_id, correlation_token)
+    response = AlexaResponse(request_namespace, state, value,
+                             device, message_id, correlation_token)
     return response.json()
 
 
@@ -396,15 +411,13 @@ def get_uuid():
 
 
 def sendBatchRequest(device, operation, value):
+    key = os.environ['SECRET_KEY']
     data_dict = {
         "device": device,
         "operation": operation,
-        "value": value
+        "value": value,
+        "secret": key
     }
     url = base_url + "/api/update"
-    data = urllib.parse.urlencode(data_dict).encode()
-    req = urllib.request.Request(url, data=data)
-    try:
-        urllib.request.urlopen(req)
-    except urllib.error.HTTPError:
-        pass
+    data = bytes(urllib.parse.urlencode(data_dict).encode())
+    req = urllib.request.urlopen(url, data=data)
