@@ -22,7 +22,6 @@ Note that this example does not deal with user authentication, only uses virtual
 a lot of implementation and error handling to keep the code simple and focused.
 """
 
-import colorsys
 import logging
 import time
 import json
@@ -210,14 +209,14 @@ def handle_non_discovery_v3(request):
 
     # Adjust the brighness of light
     elif request_namespace == "Alexa.BrightnessController":
-        if request_name =='Alexa.AdjustBrightness':
+        if request_name =='AdjustBrightness':
             value = request['directive']['payload']['brightnessDelta']
             state = "brightness"
             sendBatchRequest(device, 'brightnessDelta', value)
 
         # Set the brightness to a level
-        elif request_name == 'Alexa.SetBrightness':
-            value = request['directive']['payload']['brighness']
+        elif request_name == 'SetBrightness':
+            value = request['directive']['payload']['brightness']
             state = "brightness"
             sendBatchRequest(device, 'brightness', value)
 
@@ -225,12 +224,15 @@ def handle_non_discovery_v3(request):
     elif request_namespace == "Alexa.ColorController":
         if request_name == "SetColor":
             value = request['directive']['payload']['color']
-            color_hue = value['hue']
-            color_sat = value['saturation']
-            color_val = value['brightness']
-            color = colorsys.hsv_to_rgb(color_hue, color_sat, color_val)
             state = "color"
-            sendBatchRequest(device, 'color', color)
+            sendBatchRequest(device, 'color', value)
+    
+     # Change the light color temperature
+    elif request_namespace == "Alexa.ColorTemperatureController":
+        if request_name == "SetColorTemperature":
+            value = request['directive']['payload']['colorTemperatureInKelvin']
+            state = "colorTemperatureInKelvin"
+            sendBatchRequest(device, 'colorTemp', value)
 
     # Authorization Response
     elif request_namespace == "Alexa.Authorization":
@@ -421,3 +423,5 @@ def sendBatchRequest(device, operation, value):
     url = base_url + "/api/update"
     data = bytes(urllib.parse.urlencode(data_dict).encode())
     req = urllib.request.urlopen(url, data=data)
+ 
+
