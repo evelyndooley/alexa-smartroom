@@ -44,7 +44,7 @@ const uint64_t pAddress = 0xB00B1E5000LL;   // Radio pipe address
 char buffer [13];                           // Buffer for received frame
 int flag = 0;                               // Flag that indicates when buffer updated
 uint8_t red = 255;                          // Current RGB color values, set to 'Soft White'
-uint8_t green = 137;                              
+uint8_t green = 110;                              
 uint8_t blue = 57;                               
 uint8_t prevRed = red;                      // Previously saved color values
 uint8_t prevGreen = green;
@@ -110,7 +110,7 @@ void setColor(char *buff) {
   }
   
   red = atoi(redc);        // Cast to int so they can be set on the next loop
-  green = map(atoi(greenc), 0, 255, 0, 200);
+  green = map(atoi(greenc), 0, 255, 0, 150); // Color correction for strip color variance
   blue = map(atoi(bluec), 0, 255, 0, 150);
 }
 

@@ -53,6 +53,10 @@ void setup()
   wirelessSPI.begin();
   wirelessSPI.setPALevel(RF24_PA_MAX);
   wirelessSPI.setDataRate(RF24_250KBPS);
+//  // to let you know it got the transmit packet payload
+//  wirelessSPI.setAutoAck(1);
+//  // Allow optional ack payloads
+//wirelessSPI.enableAckPayload();
   // pipe address that we will communicate over,
   // must be the same for each nRF24 module
   wirelessSPI.openWritingPipe(pAddress);
@@ -65,6 +69,7 @@ void loop() {
 //  wirelessSPI.write( &frame, sizeof(frame) );
   while(Serial.available() > 0) {
       uint8_t inByte = Serial.read();
+      Serial.println(inByte);
       // Filtering the serial input to ensure it matches proper format
       if(inByte == 'X') {
           Serial.readBytes(&frame[1],11);
@@ -84,8 +89,16 @@ void loop() {
           Serial.write((char*)frame);
           if (wirelessSPI.write( &frame, sizeof(frame) )){
               Serial.write("Transmitted frame successfully!");
-              delay(100);
+              delay(10);
               wirelessSPI.write(&frame, sizeof(frame)); // write again due to unreliable connection
+              delay(10);
+              wirelessSPI.write(&frame, sizeof(frame));
+              delay(10);
+              wirelessSPI.write(&frame, sizeof(frame));
+              delay(10);
+              wirelessSPI.write(&frame, sizeof(frame));
+              delay(10);
+              wirelessSPI.write(&frame, sizeof(frame));
           } else {
               Serial.write("Transmitting frame failed!");
           }
